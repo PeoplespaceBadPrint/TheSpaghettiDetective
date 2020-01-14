@@ -27,22 +27,33 @@ if environ.get('SENTRY_DSN'):
 model_dir = path.join(path.dirname(path.realpath(__file__)), 'model')
 net_main, meta_main = load_net(path.join(model_dir, 'model.cfg'), path.join(model_dir, 'model.weights'), path.join(model_dir, 'model.meta'))
 
-@app.route('/p/', methods=['GET'])
+def get_image_array_from_args():
+    resp = requests.get(request.args['img'], stream=True, timeout=(1, 5))
+    resp.raise_for_status()
+    return np.array(bytearray(resp.content), dtype=np.uint8)
+
+def get_image_array_from_file():
+    return np.array(bytearray(request.files['img'].read()), dtype=np.uint8)
+
+def get_image():
+    if request.method == 'GET':
+        img_array = get_image_array_from_args()
+    elif request.method == 'POST':
+        img_array = get_image_array_from_file()
+    return cv2.imdecode(img_array, -1)
+
+@app.route('/p/', methods=['GET', 'POST'])
 @token_required
 def get_p():
-    if 'img' in request.args:
-        try:
-            resp = requests.get(request.args['img'], stream=True, timeout=(0.1, 5))
-            resp.raise_for_status()
-            img_array = np.array(bytearray(resp.content), dtype=np.uint8)
-            img = cv2.imdecode(img_array, -1)
-            detections = detect(net_main, meta_main, img, thresh=THRESH)
-            return jsonify({'detections': detections})
-        except:
-            if sentry:
-                sentry.captureException()
-    else:
+    if request.method == 'GET' and 'img' not in request.args:
         app.logger.warn("Invalid request params: {}".format(request.args))
+    try:
+        img = get_image()
+        detections = detect(net_main, meta_main, img, thresh=THRESH)
+        return jsonify({'detections': detections})
+    except:
+        if sentry:
+            sentry.captureException()
 
     return jsonify({'detections': []})
 
