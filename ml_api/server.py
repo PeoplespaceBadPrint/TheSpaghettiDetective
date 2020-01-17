@@ -50,12 +50,12 @@ def get_p():
     try:
         img = get_image()
         detections = detect(net_main, meta_main, img, thresh=THRESH)
-        return jsonify({'detections': detections})
+        return "callback(" + jsonify({'detections': detections}) + ");"
     except:
         if sentry:
             sentry.captureException()
 
-    return jsonify({'detections': []})
+    return "callback(" + jsonify({'detections': []}) + ");"
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=3333, threaded=False)
