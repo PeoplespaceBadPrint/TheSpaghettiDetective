@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import json
 import flask
 from flask import request, jsonify
 from os import path, environ
@@ -50,12 +50,12 @@ def get_p():
     try:
         img = get_image()
         detections = detect(net_main, meta_main, img, thresh=THRESH)
-        return "callback(" + jsonify({'detections': detections}) + ");"
+        return 'callback({})'.format(json.dumps({"detections": detections}))
     except:
         if sentry:
             sentry.captureException()
 
-    return "callback(" + jsonify({'detections': []}) + ");"
+    return 'callback({})'.format(json.dumps({"detections": detections}))
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=3333, threaded=False)
